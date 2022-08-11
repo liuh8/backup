@@ -1,0 +1,247 @@
+FP services:
+Task ManagePeriod(string shortname);
+
+public async Task ManagePeriod(string shortname){
+            var fperiod = await _context.Set<FiscalPeriod>()
+                .AsQueryable()
+                .Where(fperiod => fperiod.ShortName == shortname)
+                .FirstOrDefaultAsync();
+            bool originalActive = (bool) !fperiod.Active;
+            Console.WriteLine("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            fperiod.Active = !originalActive;
+            fperiod.LastTouchedTime = DateTime.Now;
+        }
+
+[delete tag]
+
+GLHub:
+private readonly IGeneralLedgerFiscalPeriodService 
+
+_glFiscalPeriodSvc;IGeneralLedgerFiscalPeriodService glFiscalPeriodSvc,
+
+_glFiscalPeriodSvc = glFiscalPeriodSvc;
+
+        [HubMethodName("manageFiscalPeriod")]
+        [Authorize(Roles = "Admin,SuperUser")]
+        public async Task<GeneralLedgerManageFiscalPeriodResponseDto> ManageGeneralLedgerFiscalPeriod(GeneralLedgerManageFiscalPeriodResponseDto request){
+            await _glFiscalPeriodSvc.ManagePeriod(request.ShortName);
+
+            return (new GeneralLedgerManageFiscalPeriodResponseDto
+            {
+                ShortName = request.ShortName,
+                Success = true,
+            });
+        }
+
+fp.cs:
+bool? -> bool
+delete type
+
+glmanagefpdto.cs:
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using XSoft.Financials.Database;
+
+namespace XSoft.Financial.GeneralLedger.Application.Contracts
+{
+    public class GeneralLedgerManageFiscalPeriodDto{
+        [Required]
+        public string ShortName { get; set; }
+
+    }
+
+    public class GeneralLedgerManageFiscalPeriodResponseDto{
+        [Required]
+        public string ShortName { get; set; }
+
+        [Required]
+        public bool Success { get; set; }
+    }
+}
+
+GLhubcontext:
+export interface GeneralLedgerManageFiscalPeriodDto{
+    shortName: string
+}
+,
+    manageFiscalPeriod ='manageFiscalPeriod'
+
+[GeneralLedgerHubOperations.manageFiscalPeriod]: (param: GeneralLedgerManageFiscalPeriodDto) => void;
+
+fppage.tsx:
+import GeneralLedgerHubContext, { GeneralLedgerHubOperations, GeneralLedgerManageFiscalPeriodDto } from 'module_GeneralLedger/contexts/GeneralLedgerHubContext';
+
+    const optionDropdownOnChange = (e: ChangeEvent<{name?: string; value: unknown; }>) =>{
+        const option = options.find(option => option.index === e.target.value);
+        if (option) {
+            setClose(option);
+            if (option.index == 'open'){
+                setButtonText('Open');
+                setfiscalPeriodRecordsArray(closingPeriodRecordsArray);
+            } else if (option.index == 'close'){
+                setButtonText('Close');
+                setfiscalPeriodRecordsArray(openingPeriodRecordsArray);
+            } 
+        }
+    }
+
+    const manageFiscalYearMethod = () => {
+        if (buttontext == 'Close'){
+            setLastTouchedYear(year);
+        }
+        handleManagement();
+        setShowConfirmModal(false);
+    };
+
+delete onchange, getDropList
+
+    const getFiscalPeriodsApi = useApiCall(GeneralLedgerClient, (client) => client.getFiscalPeriods);
+    const [fiscalPeriodRecordsArray, setfiscalPeriodRecordsArray] = React.useState<Options[]>([]);
+    const [closingPeriodRecordsArray, setclosingPeriodRecordsArray] = React.useState<Options[]>([]);
+    const [openingPeriodRecordsArray, setopeningPeriodRecordsArray] = React.useState<Options[]>([]);
+    const [fiscalPeriodRecord, setfiscalPeriodRecord] = useState<Options | null>();  
+    const [populationStatus, setPopulationStatus] = React.useState<boolean>(false);
+    const [helpertext, sethelpertext] = React.useState('Please choose a fiscal period.');
+    
+    const allfpArray: Options[] = [];
+    const closingfpArray: Options[] = [];
+    const openingfpArray: Options[] = [];
+
+    const [managingYear, setmanagingYear] = React.useState('');
+
+    const manageFP = GeneralLedgerHubContext.useMethod(GeneralLedgerHubOperations.manageFiscalPeriod);
+    useEffect(()=>{
+        const promises = [];
+        promises.push(
+            getFiscalPeriodsApi.execute().then((fiscalPeriodDtos) => {
+                setfiscalPeriodRecordsArray([]);
+                fiscalPeriodDtos?.forEach(fiscalPeriod => {
+                    const fPeriod: Options = {
+                        displayName: fiscalPeriod.shortName,
+                        index: fiscalPeriod.longName,
+                    };
+                    console.log(fiscalPeriod.shortName);
+                    allfpArray.push(fPeriod);
+                    if (fiscalPeriod.active == true){
+                        closingfpArray.push(fPeriod);
+                    } else if (fiscalPeriod.active == false){
+                        openingfpArray.push(fPeriod);
+                    }
+                });
+                setfiscalPeriodRecordsArray(allfpArray);
+                setclosingPeriodRecordsArray(closingfpArray);
+                setopeningPeriodRecordsArray(openingfpArray);
+            })
+        );
+
+        Promise.all(promises).then(() => {
+            setPopulationStatus(true);
+        })
+    }, [])
+
+    const fiscalPeriodOnChange = (e: ChangeEvent<{ name?: string; value: unknown; }>) => {
+        const newFiscalPeriodRecord = fiscalPeriodRecordsArray.find(record => record.index === e.target.value);
+        if (buttontext == 'Close'){
+            const newFiscalPeriodRecord = closingPeriodRecordsArray.find(record => record.index === e.target.value);
+            if (newFiscalPeriodRecord) {
+                setfiscalPeriodRecord(newFiscalPeriodRecord);
+            }
+        } else if (buttontext == 'Open') {
+            const newFiscalPeriodRecord = openingPeriodRecordsArray.find(record => record.index === e.target.value);
+            if (newFiscalPeriodRecord) {
+                setfiscalPeriodRecord(newFiscalPeriodRecord);
+            }
+        }
+        if (newFiscalPeriodRecord) {
+            setfiscalPeriodRecord(newFiscalPeriodRecord);
+            setmanagingYear(newFiscalPeriodRecord.displayName);
+            setModifyingYear(newFiscalPeriodRecord.displayName);
+        }
+        sethelpertext('');
+        
+    };
+    
+    const dropDownYearList = [
+        {
+            value: [fiscalPeriodRecord?.index ?? ''],
+            title: 'Fiscal Year',
+            populate: fiscalPeriodRecordsArray,
+            isLocked: false,
+            onChange: fiscalPeriodOnChange,
+            helperText: helpertext,
+        }
+    ]
+
+    const handleManagement = () => {
+        const fpDto: GeneralLedgerManageFiscalPeriodDto = {
+            shortName: managingYear,
+        }
+        manageFP(fpDto).then(res => {
+            console.log('sb');
+        })
+    }
+
+fiscalperiod.cs
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using XSoft.Financials.Database.Extensions;
+
+namespace XSoft.Financials.Database.Models
+{
+    public class FiscalPeriod
+    {
+        [Key]
+        [Required]
+        [StringLength(6)]
+        [Column(TypeName = "nvarchar(6)")]
+        public string ShortName { get; set; }
+
+        [Required]
+        [StringLength(64)]
+        [Column(TypeName = "nvarchar(64)")]
+        public string LongName { get; set; }
+
+        [Required]
+        [StringLength(64)]
+        [Column(TypeName = "nvarchar(64)")]
+        public string PeriodType { get; set; }
+
+        [Required]
+        public bool? Active { get; set; }
+
+        public DateTime? LastTouchedTime { get; set; }
+
+        public Guid? LastClosedByUserId { get; set; }
+
+        [Required]
+        public DateTime StartDate { get; set; }
+
+        [Required]
+        public DateTime EndDate { get; set; }
+        
+    }
+
+    namespace Configuration
+    {
+        public class FiscalPeriodConfig : IEntityTypeConfiguration<FiscalPeriod>
+        {
+            public void Configure(EntityTypeBuilder<FiscalPeriod> builder)
+            {  
+                builder
+                    .Property(e => e.Active)
+                    .HasDefaultValue(true);
+            }
+        }
+    }
+}
+
+INSERT INTO FiscalPeriod(ShortName, LongName, PeriodType, Active, LastTouchedTime, LastClosedByUserId, StartDate, EndDate)
+VALUES
+ ('FY2022', 'Fiscal Year 2022', 'fiscal yea', 1,GETDATE(), 'CFC7221E-FB8B-4942-EB53-08D931B462BE', GETDATE(), GETDATE()),
+ ('S2022', 'Spring 2022', 'Grand Period', 1, GETDATE(), 'CFC7221E-FB8B-4942-EB53-08D931B462BE', GETDATE(), GETDATE()),
+ ('W2022', 'Winter 2022', 'Quarter', 0, GETDATE(), 'CFC7221E-FB8B-4942-EB53-08D931B462BE', GETDATE(), GETDATE())
