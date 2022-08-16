@@ -250,3 +250,15 @@ VALUES
  ('2030', 1, GETDATE(), 'CFC7221E-FB8B-4942-EB53-08D931B462BE', GETDATE(), GETDATE()),
  ('2031', 1, GETDATE(), 'CFC7221E-FB8B-4942-EB53-08D931B462BE', GETDATE(), GETDATE()),
  ('2032', 1, GETDATE(), 'CFC7221E-FB8B-4942-EB53-08D931B462BE', GETDATE(), GETDATE())
+
+    const [showEnd, setShowEnd] = React.useState<boolean>(false);
+    const confirmEnd = () => {
+        setShowEnd(false);
+    }
+
+
+            <ConfirmationModal
+                    open={showEnd}
+                    itemToConfirm={'You have already reached an end.'}
+                    onConfirm={confirmEnd}
+                    onClose={closeModal} itemDetails={undefined}/>
