@@ -1,0 +1,29 @@
+    const getFiscalPeriodsApi = useApiCall(GeneralLedgerClient, (client) => client.getFiscalPeriods);
+ 
+    const openedfp: GeneralLedgerFiscalPeriodSummaryDto[] = [];
+    const allfp: GeneralLedgerFiscalPeriodSummaryDto[] = [];
+    
+    const [FiscalPeriodRecords, setFiscalPeriodRecords] = useState<GeneralLedgerFiscalPeriodSummaryDto[]>([]);
+
+    // useEffect(()=>{
+    //     const promises = [];
+    //     setFiscalPeriodRecords([]);
+    //     promises.push(
+    //         getFiscalPeriodsApi.execute().then((fiscalPeriodDtos) => {
+    //             fiscalPeriodDtos?.forEach(fiscalPeriod => {
+    //                 if (fiscalPeriod.active == true){
+    //                     openedfp.push(fiscalPeriod);
+    //                 } 
+    //                 allfp.push(fiscalPeriod);  
+    //             });
+
+    //         })
+    //     );
+    // }, [])
+    
+    
+                const yeartocheck = checkDate.getFullYear();
+            // openedfp.forEach(openperiod => {
+            //     console.log('TODO:find out here');
+            // })
+            console.log(yeartocheck);
